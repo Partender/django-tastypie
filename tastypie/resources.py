@@ -2019,7 +2019,7 @@ class BaseModelResource(Resource):
             # Only a field provided, match with provided filter type
             return [self.fields[field_name].attribute] + [filter_type]
 
-        elif len(filter_bits) == 1 and filter_bits[0] in self.get_query_terms(field_name):
+        elif len(filter_bits) == 1 and filter_bits[0] in self.get_query_terms(field_name, filter_bits):
             # Match with valid filter type (i.e. contains, startswith, Etc.)
             return [self.fields[field_name].attribute] + filter_bits
 
@@ -2062,19 +2062,46 @@ class BaseModelResource(Resource):
 
         return value
 
-    def get_query_terms(self, field_name):
+    def get_final_destination(self, field_name, filter_bits):
+        # Nothing to traverse anymore
+        if filter_bits is None or len(filter_bits) == 0:
+            django_field_name = self.fields[field_name].attribute
+            django_field = self._meta.object_class._meta.get_field(django_field_name)
+
+            if hasattr(django_field, 'field'):
+                django_field = django_field.field  # related field
+
+            return django_field
+
+        try:
+            # We still have something to traverse, so check if it is realted reousrce
+            related_resource = self.fields[field_name].get_related_resource(None)
+
+            if related_resource is not None:
+                next_field_name = filter_bits[0]
+                next_chain = filter_bits[1:]
+
+                return related_resource.get_final_destination(field_name=next_field_name, filter_bits=next_chain)
+
+            else:
+                django_field_name = self.fields[field_name].attribute
+                django_field = self._meta.object_class._meta.get_field(django_field_name)
+
+                if hasattr(django_field, 'field'):
+                    django_field = django_field.field  # related field
+
+                return django_field
+
+        except FieldDoesNotExist:
+            raise InvalidFilterError("The '%s' field is not a valid field name" % field_name)
+
+    def get_query_terms(self, field_name, filter_bits):
         """ Helper to determine supported filter operations for a field """
 
         if field_name not in self.fields:
             raise InvalidFilterError("The '%s' field is not a valid field" % field_name)
 
-        try:
-            django_field_name = self.fields[field_name].attribute
-            django_field = self._meta.object_class._meta.get_field(django_field_name)
-            if hasattr(django_field, 'field'):
-                django_field = django_field.field  # related field
-        except FieldDoesNotExist:
-            raise InvalidFilterError("The '%s' field is not a valid field name" % field_name)
+        django_field = self.get_final_destination(field_name=field_name, filter_bits=filter_bits)
 
         return django_field.get_lookups().keys()
 
@@ -2084,7 +2111,7 @@ class BaseModelResource(Resource):
         if not filter_bits:
             # No filter type to resolve, use default
             return default_filter_type
-        elif filter_bits[0] not in self.get_query_terms(field_name):
+        elif filter_bits[-1] not in self.get_query_terms(field_name, filter_bits):
             # Not valid, maybe related field, use default
             return default_filter_type
         else:
