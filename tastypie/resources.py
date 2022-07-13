@@ -2089,6 +2089,9 @@ class BaseModelResource(Resource):
             # Not valid, maybe related field, use default
             related_resource = self.fields[field_name].get_related_resource(None)
 
+            if related_resource is None:
+                return default_filter_type
+
             return related_resource.resolve_filter_type(field_name=filter_bits[0], filter_bits=filter_bits[1:])
         else:
             # A valid filter type
