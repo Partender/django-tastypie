@@ -2117,9 +2117,12 @@ class BaseModelResource(Resource):
         if not filter_bits:
             # No filter type to resolve, use default
             return default_filter_type
-        elif filter_bits[0] not in self.get_query_terms(field_name):
+
+        if filter_bits[0] not in self.get_query_terms(field_name):
             # Not valid, maybe related field, use default
-            return self.resolve_filter_type(field_name=filter_bits[0], filter_bits=filter_bits[1:])
+            related_resource = self.fields[field_name].get_related_resource(None)
+
+            return related_resource.resolve_filter_type(field_name=filter_bits[0], filter_bits=filter_bits[1:])
         else:
             # A valid filter type
             return filter_bits[0]
