@@ -2019,7 +2019,7 @@ class BaseModelResource(Resource):
             # Only a field provided, match with provided filter type
             return [self.fields[field_name].attribute] + [filter_type]
 
-        elif len(filter_bits) == 1 and filter_bits[0] in self.get_query_terms(field_name, filter_bits):
+        elif len(filter_bits) == 1 and filter_bits[0] in self.get_query_terms(field_name):
             # Match with valid filter type (i.e. contains, startswith, Etc.)
             return [self.fields[field_name].attribute] + filter_bits
 
