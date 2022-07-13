@@ -2062,39 +2062,6 @@ class BaseModelResource(Resource):
 
         return value
 
-    def get_final_destination(self, field_name, filter_bits):
-        # Nothing to traverse anymore
-        if filter_bits is None or len(filter_bits) == 0:
-            django_field_name = self.fields[field_name].attribute
-            django_field = self._meta.object_class._meta.get_field(django_field_name)
-
-            if hasattr(django_field, 'field'):
-                django_field = django_field.field  # related field
-
-            return django_field
-
-        try:
-            # We still have something to traverse, so check if it is realted reousrce
-            related_resource = self.fields[field_name].get_related_resource(None)
-
-            if related_resource is not None:
-                next_field_name = filter_bits[0]
-                next_chain = filter_bits[1:]
-
-                return related_resource.get_final_destination(field_name=next_field_name, filter_bits=next_chain)
-
-            else:
-                django_field_name = self.fields[field_name].attribute
-                django_field = self._meta.object_class._meta.get_field(django_field_name)
-
-                if hasattr(django_field, 'field'):
-                    django_field = django_field.field  # related field
-
-                return django_field
-
-        except FieldDoesNotExist:
-            raise InvalidFilterError("The '%s' field is not a valid field name" % field_name)
-
     def get_query_terms(self, field_name):
         """ Helper to determine supported filter operations for a field """
 
