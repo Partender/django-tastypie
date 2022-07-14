@@ -2092,7 +2092,11 @@ class BaseModelResource(Resource):
             if related_resource is None:
                 return default_filter_type
 
-            return related_resource.resolve_filter_type(field_name=filter_bits[0], filter_bits=filter_bits[1:])
+            return related_resource.resolve_filter_type(
+                field_name=filter_bits[0],
+                filter_bits=filter_bits[1:],
+                default_filter_type=default_filter_type,
+            )
         else:
             # A valid filter type
             return filter_bits[0]
